@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1607129494 source:e:\users\jbetancourt\documents\biblioteca\biblioteca\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<sstream>
+	<stdlib.h>
+
