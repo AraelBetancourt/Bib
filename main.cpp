@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
+
 using namespace std;
 
 
@@ -32,6 +33,7 @@ vector<Libro> Libros;
 vector<Prestamos> LibrosPrestados;
 void menuAlumnos();
 void menu();
+void EntregaLibro();
 void menuLibros();
 void menuBusqueda();
 void MostrarAlumnos();
@@ -45,7 +47,10 @@ void RespaldoAlumnos();
 void RespaldoLibros();
 void MostrarLibrosPrestados();
 void MostrarLibrosDisponibles();
-int getLibrosDisponibles(string id);
+bool VerificaDisponibilidadLibro(string id);
+int getLibroPrestado(string id);
+void PrestarLibro();
+void GuardarPrestamos();
 Libro GetLibro(string id);
 Alumno GetAlumno(string id);
 string getTexto(string leyenda);
@@ -63,6 +68,14 @@ void tokenize(string &str, char delim, vector<string> &out)
 	}
 }
 /* Estas Funciones Guardan los archivos */
+void GuardarPrestamos(){
+    ofstream myfile;
+    myfile.open ("Prestamos.txt");
+    for(int i=0;i<LibrosPrestados.size();i++){
+        myfile<<LibrosPrestados[i].Matricula+","+LibrosPrestados[i].IdLibro+","+std::to_string(LibrosPrestados[i].DiasPrestados)+"\n";
+    }
+    myfile.close();
+}
 void GuardarAlumnos(){
     ofstream myfile;
     myfile.open ("Alumnos.txt");
@@ -81,7 +94,7 @@ void GuardaLibros(){
 }
 void RespaldoAlumnos(){
     ofstream myfile;
-    myfile.open ("Alumnos.txt");
+    myfile.open ("AlumnosRespaldo.txt");
     for(int i=0;i<Alumnos.size();i++){
         myfile<<Alumnos[i].Matricula+","+Alumnos[i].Nombre+"\n";
     }
@@ -89,7 +102,7 @@ void RespaldoAlumnos(){
 }
 void RespaldoLibros(){
     ofstream myfile;
-    myfile.open ("Libros.txt");
+    myfile.open ("LibrosRespaldo.txt");
     for(int i=0;i<Libros.size();i++){
         myfile<<Libros[i].Id+","+Libros[i].Titulo+","+Libros[i].Autor+","+Libros[i].Editorial+"\n";
     }
@@ -112,7 +125,7 @@ vector<Libro> lecturaLibros() {
 			l.Titulo=a[1];
 			l.Autor=a[2];
 			l.Editorial=a[3];
-			l.TotalLibros=stoi(a[4]);
+			l.TotalLibros=std::stoi(a[4]);
 			elementos.push_back(l);
         }
 	}
@@ -317,7 +330,7 @@ void menu() {
 	while(true){
         system("CLS");
 	    cout<<"1.- Prestamo de Libro(s)\n";
-	    cout<<"2.- entrega de Libro(s)\n";
+	    cout<<"2.- Entrega de Libro(s)\n";
 	    cout<<"3.- Busqueda\n";
 	    cout<<"4.- Alumnos\n";
 	    cout<<"5.- Libros\n";
@@ -326,10 +339,10 @@ void menu() {
 	    cin>>respuesta;
 	    switch(respuesta){
 			case 1:
-				cout<<"1.- Prestamo de Libro(s)\n";
+				PrestarLibro();
 				break;
 			case 2:
-				cout<<"2.- entrega de Libro(s)\n";
+				EntregaLibro();
 				break;
 			case 3:
 				menuBusqueda();
@@ -356,7 +369,8 @@ void menu() {
 }
 
 void RespaldarDatos(){
-
+    RespaldoAlumnos();
+    RespaldoLibros();
 }
 /*Funciones para mostrar datos*/
 void MostrarAlumnos(){
@@ -372,7 +386,7 @@ void MostrarLibrosDisponibles(){
     system("CLS");
     cout<<"Relacion de todos los Libros disponibles\n";
     for(int i=0;i<Libros.size();i++){
-        int LibrosDisponibles=getLibrosDisponibles(Libros[i].Id);
+        int LibrosDisponibles=getLibroPrestado(Libros[i].Id);
         int TotalLibros = Libros[i].TotalLibros-LibrosDisponibles;
         if(TotalLibros>0){
             cout<<" El Libro "+Libros[i].Titulo+" Tiene Disponibilidad de "+std::to_string(TotalLibros)+"\n";
@@ -385,6 +399,7 @@ void MostrarLibrosPrestados(){
     system("CLS");
     cout<<"Relacion de todos los Libros Prestados\n";
     for(int i=0;i<LibrosPrestados.size();i++){
+            cout<<LibrosPrestados[i].Matricula+" - "+LibrosPrestados[i].IdLibro;
         Alumno a = GetAlumno(LibrosPrestados[i].Matricula);
         Libro l = GetLibro(LibrosPrestados[i].IdLibro);
         cout<<l.Titulo+" Esta prestado al Alumno "+a.Nombre+"\n";
@@ -399,6 +414,82 @@ void MostrarLibros(){
     }
     system("pause");
 }
+/*Funciones de respaldo*/
+bool VerificaDisponibilidadLibro(string id){
+    for(int i=0;i<Libros.size();i++){
+        if(Libros[i].Id==id){
+            int LibrosDisponibles=getLibroPrestado(Libros[i].Id);
+            int TotalLibros = Libros[i].TotalLibros-LibrosDisponibles;
+            if(TotalLibros>0){
+                return true;
+            }else{
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+void PrestarLibro(){
+    string Matricula=getTexto("Matricula del Alumno");
+    if(!ValidaMatricula(Matricula)){
+        cout<<"El alumno no se encuentra registrado\n";
+        system("pause");
+    }else{
+        string idLibro;
+        cout<<"Id Libro: ";
+        cin>>idLibro;
+        if(ValidaIdLibro(idLibro)){
+            if(VerificaDisponibilidadLibro(idLibro)){
+                cout<<"El Libro "+idLibro+" se presto al alumno con matricula: "+Matricula+"\n";
+                Prestamos p;
+                p.Matricula=Matricula;
+                p.IdLibro=idLibro;
+                p.DiasPrestados=1;
+                LibrosPrestados.push_back(p);
+                GuardarPrestamos();
+                system("pause");
+            }else{
+                cout<<"El libro no se encuentra disponible\n";
+                system("pause");
+            }
+        }else{
+            cout<<"El libro no exisate en el catalogo\n";
+            system("pause");
+        }
+    }
+}
+
+
+void EntregaLibro(){
+string Matricula=getTexto("Matricula del Alumno");
+    if(!ValidaMatricula(Matricula)){
+        cout<<"El alumno no se encuentra registrado\n";
+        system("pause");
+    }else{
+        string idLibro;
+        cout<<"Id Libro: ";
+        cin>>idLibro;
+        if(ValidaIdLibro(idLibro)){
+            vector<Prestamos> tempP;
+            for(int i=0;i<LibrosPrestados.size();i++){
+                if(LibrosPrestados[i].Matricula==Matricula & LibrosPrestados[i].IdLibro==idLibro){
+                    cout<<"Se registro la entrega de Libros\n";
+                    system("pause");
+
+                }else{
+                    tempP.push_back(LibrosPrestados[i]);
+                }
+            }
+            LibrosPrestados=tempP;
+            GuardarPrestamos();
+        }else{
+            cout<<"El libro no exisate en el catalogo\n";
+            system("pause");
+        }
+    }
+}
+
 /*Funciones para obtener un dato en espesifico*/
 Libro GetLibro(string id){
     for(int i=0;i<Libros.size();i++){
@@ -408,7 +499,7 @@ Libro GetLibro(string id){
     }
 }
 
-int getLibrosDisponibles(string id){
+int getLibroPrestado(string id){
     int Disponible=0;
     for(int i=0;i<LibrosPrestados.size();i++){
         if(LibrosPrestados[i].IdLibro==id){
